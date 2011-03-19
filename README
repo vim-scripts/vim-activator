@@ -1,0 +1,10 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=3514
+
+There's a script that comes with vim distribution for editing with existing
+vim in Windows.  However, this feature doesn't work in Linux xterm
+environment.  There's a beast called Vim Shell by Thomas Wana, but it's not
+officially endorsed by vim.  When you exit vim to shell by pressing <ctrl-z>
+which suspends the vim, this nifty little gadget allows you edit subsequent
+files by reusing the existing vim.  It's kind of emulates a vim shell from the
+view point of a normal user.  This tool requires client-server option to be
+enabled in vim.
