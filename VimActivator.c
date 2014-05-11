@@ -51,6 +51,9 @@ int doClient(char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	if (strcmp(*argv, TESTING_PILL) == 0)
+		return 1;
+
 	// Send the query to the server
 	char *query = malloc(strlen(argv[1]) + strlen(argv[2]) + 4);
 	sprintf(query, "%s%s%s\n", argv[1], SEPARATOR, argv[2]);
@@ -101,12 +104,19 @@ void runDaemon()
 	{
 		int clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &length);
 		if (clientfd < 0) 
+		{
 			perror("ERROR on accept");
+			continue;
+		}
 
 		bzero(buffer, BUFSIZ);
 		int n = read(clientfd, buffer, BUFSIZ - 1);
 		if (n < 0) 
+		{
 			perror("ERROR reading from socket");
+			close(clientfd);
+			continue;
+		}
 
 		/* printf("Here is the message: %s\n",buffer); */
 		char *ppid = strtok(buffer, SEPARATOR);
@@ -114,12 +124,28 @@ void runDaemon()
 		char *filename = strtok(NULL, SEPARATOR);
 		/* printf("filename: %s\n", filename); */
 
-		char *command = "/usr/bin/vim --servername VIM%s -u NONE -U NONE --remote-send \"<C-\\><C-N>:n<Space>%s<CR>\"";
+		if (ppid == NULL || filename == NULL)
+		{
+			close(clientfd);
+			continue;
+		}
+
+		// edit the given file
+		char *command = "/usr/bin/vim --servername VIM%s -u NONE -U NONE --remote-silent %s";
 		int temp = strlen(command) + strlen(ppid) + strlen(filename) + 1;
 		char *request = malloc(temp);
 		snprintf(request, temp, command, ppid, filename);
 		system(request);
 		free(request);
+
+		// highligh the current char
+		command = "/usr/bin/vim --servername VIM%s -u NONE -U NONE --remote-send \"<C-\\><C-N>:silent<space>call<Space>ShowBlockCursor(0)<cr><c-l>\"";
+		temp = strlen(command) + strlen(ppid) + 1;
+		request = malloc(temp);
+		snprintf(request, temp, command, ppid);
+		system(request);
+		free(request);
+
 		close(clientfd);
 	}
 
@@ -174,7 +200,7 @@ void doServer()
  * gcc -Wall -g -o activator VimActivator.c
  *
  * @param argc If its 1 then start the server, otherwise act as a
- * client and send the message in args[0] to the server.
+ * client and send the message in argv to the server.
  */
 int main(int argc, char **argv) 
 {
